@@ -3,7 +3,7 @@
 
 ## Setup
 ### Download Files
-You can download these from the Kaggle [site(https://www.kaggle.com/datasets/mohamedlotfy50/wmt-2014-english-german)] or through this Github above:
+You can download these from the Kaggle [site](https://www.kaggle.com/datasets/mohamedlotfy50/wmt-2014-english-german) or through this Github above:
 - wmt14_translate_de-en_train.csv
 - wmt14_translate_de-en_test.csv
 
