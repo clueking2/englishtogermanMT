@@ -1,6 +1,12 @@
 # English to German Machine Trasnlation
 ### For Course: Natural Language Processing
 
+## File Descriptions
+- project.py: code for all model versions and their metrics
+- visualizations.py: code for making visualizations used in presentation
+- NLPFinalProject.pptx: powerpoint slides for presentation
+- wmt14_translate_de-en_train.csv: data used to split for traiing and testing
+  
 ## Setup
 ### Download Files
 You can download these from the [Kaggle site](https://www.kaggle.com/datasets/mohamedlotfy50/wmt-2014-english-german) or through this Github above:
