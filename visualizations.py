@@ -4,7 +4,7 @@ import pandas as pd
 
 
 ############################### Table #######################################
-#create a dataframe
+# Create dataframe
 data = {
     'Model': ['Unigram', 'Bigram', 'Custom Unigram', 'Custom Bigram'],
     'BLEU Score': [0.4044, 1.4795, 3.1071, 2.6473],
@@ -13,7 +13,7 @@ data = {
 }
 df = pd.DataFrame(data)
 
-#plot table with matplotlib
+# Plot table with matplotlib
 fig, ax = plt.subplots(figsize=(10, 2))
 ax.axis('tight')
 ax.axis('off')
@@ -26,13 +26,13 @@ plt.show()
 
 
 ############################### Line Chart #######################################
-#data
+# Data
 models = ['Unigram', 'Bigram', 'Custom Unigram', 'Custom Bigram']
 bleu_scores = [0.4044, 1.4795, 3.1071, 2.6473]
 accuracy_scores = [0.1121, 0.2176, 0.2801, 0.2533]
 f1_scores = [0.1071, 0.2460, 0.2056, 0.3116]
 
-#plotting
+# Plotting
 plt.figure(figsize=(10, 6))
 plt.plot(models, bleu_scores, marker='o', label='BLEU Score')
 plt.plot(models, accuracy_scores, marker='o', label='Accuracy')
@@ -50,7 +50,7 @@ plt.show()
 
 
 ############################### Radar Chart #######################################
-#data for radar chart
+# Data for radar chart
 labels = ['BLEU', 'Accuracy', 'F1 Score']
 num_vars = len(labels)
 
@@ -61,13 +61,13 @@ models_b = {
     'Custom Bigram': [2.6473, 0.2533, 0.3116]
 }
 
-#setup
+# Setup
 angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
 angles += angles[:1]  # Close the loop
 
 fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
 
-#plot each model
+# Plot each model
 for model_name, stats in models_b.items():
     stats += stats[:1]  # Close the loop
     ax.plot(angles, stats, label=model_name)
