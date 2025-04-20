@@ -28,3 +28,6 @@ If you don't already have these install, please install these according to your 
   
 ## Run in IDE
 My IDE is VS Code, but feel free to run in your own IDE and use whataver "run" button exists or use *python -u "/yourfilepath/project.py"* where yourfilepath is where you download and run the files from.
+
+## Presentation Link: 
+[Youtube Presentation](https://youtu.be/J2aKIPJIG-M)
