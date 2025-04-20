@@ -31,9 +31,6 @@ def tokenize_sents(sents, nlp_model):
     tokenized = []
     for sent in sents:
         tokens = nlp_model(sent)
-        # doc = nlp_model(sent)
-        # tokens = [token.text for token in doc]      #use with nlp_en or nlp_de
-
         tokenized.append(tokens)
     return tokenized
 
@@ -99,11 +96,7 @@ def build_better_uni_model(src_tokens, tgt_tokens):
                 diff = abs(i-j)
 
                 weight = (-0.5)**diff + 1e-3
-                # weight = 1 if i==j else 1e-8
-                # weight = (1 - (((1.0*i)/n_src_grams) - ((1.0*j)/n_tgt_grams))**10)
-                # weight = 1.0 - max(((i / n_src_grams - j / n_tgt_grams) ** 20), 0)
                 model[s_unigram][t_unigram] += weight / (src_freq[s_unigram])
-                # model[s_unigram][t_unigram] = 1 - (np.abs(i-j) / (n_src_grams+n_tgt_grams))
 
     for s_unigram in model:
         total = sum(model[s_unigram].values())
@@ -113,7 +106,7 @@ def build_better_uni_model(src_tokens, tgt_tokens):
     return model
 
 
-# Bigram translation model - FIX: Use the actual tokens instead of strings
+# Bigram translation model 
 def build_bigram_model(src_tokens, tgt_tokens):
     model = defaultdict(lambda: defaultdict(int))
     for src_tok, tgt_tok in zip(src_tokens, tgt_tokens):
@@ -154,16 +147,10 @@ def build_better_bi_model(src_tokens, tgt_tokens):
                 s_bigram = src_bigrams[i]
                 t_bigram = tgt_bigrams[j]
                 diff = abs(i-j)
-
-                # weight = (-0.5)**diff + 1e-3
                 sigma = 0.5
                 # "Gaussian" weighting -- value matching word order, but drop off to a low level for others, not as steep as -0.5**diff
                 weight = np.exp(- (diff ** 2) / (2 * sigma ** 2))
-                # weight = 1 if i==j else 1e-8
-                # weight = (1 - (((1.0*i)/n_src_grams) - ((1.0*j)/n_tgt_grams))**10)
-                # weight = 1.0 - max(((i / n_src_grams - j / n_tgt_grams) ** 20), 0)
                 model[s_bigram][t_bigram] += weight / (src_freq[s_bigram])
-                # model[s_unigram][t_unigram] = 1 - (np.abs(i-j) / (n_src_grams+n_tgt_grams))
 
     for s_bigram in model:
         total = sum(model[s_bigram].values()) + len(model[s_bigram])
@@ -176,7 +163,6 @@ def build_better_bi_model(src_tokens, tgt_tokens):
 
 def translate_unigram(sentence, model, tok):
     tokens = tokenize_sents([sentence], tok)[0]
-    # print(f"Tokens: {tokens}")  # Debug: See tokenized sentence
     translated = []
     
     for i in range(len(tokens)):
@@ -190,15 +176,11 @@ def translate_unigram(sentence, model, tok):
     # Handle last token
     if len(tokens) == 1:
         translated = tokens
-    # elif len(tokens) > 1 and tokens[-1] not in translated:
-    #     translated.append(tokens[-1])
     
     return " ".join(translated)
 
 def translate_bigram(sentence, model, unigram_model, tok):
-    # tokens = sentence.split()
     tokens = tokenize_sents([sentence], tok)[0]
-    # print(f"Tokens: {tokens}")  # Debug: See tokenized sentence
     translated = []
     
     for i in range(len(tokens) - 1):
@@ -221,10 +203,7 @@ def translate_bigram(sentence, model, unigram_model, tok):
     # Handle last token
     if len(tokens) == 1:
         translated = tokens
-    # elif len(tokens) > 1 and tokens[-1] not in translated:
-    #     translated.append(tokens[-1])
     
-    # print(f"Bigram Translation (Raw): {translated}")  # Debug: See raw translation
     return " ".join(translated)
 
 
@@ -267,8 +246,8 @@ tokenized_fname = f"tokenized_data_{nrows}.csv"
 
 print(f"nrows: {nrows}")
 df = pd.read_csv("./Final_Project/wmt14_translate_de-en_train.csv", delimiter=",", encoding="utf-8", nrows=nrows, engine="python", on_bad_lines="skip")
-# Drop rows with None values
 
+# Drop rows with None values
 df= df.dropna(subset=['de', 'en'])
 print(f'df length: {len(df)}')
 
@@ -287,14 +266,10 @@ english_sents = df["en"].tolist()
 german_sents = df["de"].tolist()
 
 
-# Test set preparation
+# Test set prep
 eng_train, eng_test, ger_train, ger_test = train_test_split(
     english_sents, german_sents, test_size=0.2, random_state=42
 )
-
-# Spacy for tokenizing
-# tok_de = spacy.load("de_core_news_sm")
-# tok_en = spacy.load("en_core_web_sm")
 
 # Tokenize German and English sentences
 tok_en = ez_tokenizer
@@ -339,15 +314,12 @@ custom_unigram_norm = [normalize(s) for s in custom_unigram_preds]
 custom_bigram_norm = [normalize(s) for s in custom_bigram_preds]
 ger_test_norm = [detokenize(normalize(s)) for s in ger_test]
 
-
-# FIX: Proper BLEU calculation
 # Format references correctly - each reference is a list of one reference
 references = [ger_test_norm]
 unigram_hyps = [detokenize(normalize(hyp)) for hyp in unigram_preds]
 bigram_hyps = [detokenize(normalize(hyp)) for hyp in bigram_preds]
 custom_unigram_hyps = [detokenize(normalize(hyp)) for hyp in custom_unigram_preds]
 custom_bigram_hyps = [detokenize(normalize(hyp)) for hyp in custom_bigram_preds]
-
 
 # Calculate BLEU scores
 bleu_unigram = corpus_bleu(unigram_hyps, references)
@@ -384,4 +356,4 @@ print(f"F1 Score - Custom Bigram Model: {f1_custom_bigram:.4f}")
 
 
 
-print("\nBLEU remains the primary metric for evaluating machine translation systems.")
+print("\nNOTE:BLEU remains the primary metric for evaluating machine translation systems.")
