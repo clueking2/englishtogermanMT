@@ -14,31 +14,33 @@ def clean_text(text):
     if text is None or not isinstance(text, str):
         return ""  # Return empty string for None values
     
-    text = text.lower()
-    text = re.sub(r"[^a-zäöüßA-ZÄÖÜẞ0-9\s.,!?'-]", "", text)  # keep common characters
-    text = re.sub(r"\s+", " ", text).strip()  # clean extra spaces
+    text = text.lower() # Lowercase for normalization
+    # Remove unwanted characters, keep letters, numbers, spaces, and common punctuation
+    text = re.sub(r"[^a-zäöüßA-ZÄÖÜẞ0-9\s.,!?'-]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
     return text
 
-
+# Simple tokenizer: remove punctuation, split on whitespace
 def ez_tokenizer(text):
     text = re.sub(r'[^\w\s]', '', text).lower()
-    # Split by whitespace
     tokens = text.split()
     return tokens
 
-# Tokenize sentences function
+# Tokenize sentences function using ez_tokenizer
 def tokenize_sents(sents, nlp_model):
     tokenized = []
     for sent in sents:
         tokens = nlp_model(sent)
         tokenized.append(tokens)
     return tokenized
-
+    
+# Normalize text by lowercasing and stripping extra spaces
 def normalize(sent):
     return sent.lower().strip()
 
+# Reconstruct detokenized string, fixing common spacing/punctuation issues
 def detokenize(text):
-    # Fix spaces before punctuation: .,!?;: (including German ones like „“)
+    # Remove any unecessary spaces before/after punctuation
     text = re.sub(r'\s+([?.!,:;»])', r'\1', text)
     text = re.sub(r'([«„])\s+', r'\1', text)
 
@@ -54,7 +56,7 @@ def detokenize(text):
 
 
 #%% Models
-#Unigram Model
+#Basic Unigram Model
 def build_unigram_model(src_tokens, tgt_tokens):
     model = defaultdict(lambda: defaultdict(int))
     for src_tok, tgt_tok in zip(src_tokens, tgt_tokens):
@@ -69,24 +71,22 @@ def build_unigram_model(src_tokens, tgt_tokens):
                 model[s_unigram][t_unigram] += 1
     return model
 
+# Weighted Unigram Model (for custom model later)
 def build_better_uni_model(src_tokens, tgt_tokens):
     model = defaultdict(lambda: defaultdict(float))
 
     src_freq = defaultdict(int)
 
-    # First pass: count source unigram frequencies
+    # Count source unigram frequencies
     for src_tok in src_tokens:
         src_unigrams = list(ngrams(src_tok, 1))
         for s_unigram in src_unigrams:
             src_freq[s_unigram] += 1
 
     for src_tok, tgt_tok in zip(src_tokens, tgt_tokens):
-        # Create bigrams for each sentence
         src_unigrams = list(ngrams(src_tok, 1))
         tgt_unigrams = list(ngrams(tgt_tok, 1))
         
-        # Map each source bigram to each target bigram with a count
-        # This simple approach increases counts for all possible pairs
         n_src_grams = len(src_unigrams)
         n_tgt_grams = len(tgt_unigrams)
         for i in range(n_src_grams):
@@ -98,6 +98,7 @@ def build_better_uni_model(src_tokens, tgt_tokens):
                 weight = (-0.5)**diff + 1e-3
                 model[s_unigram][t_unigram] += weight / (src_freq[s_unigram])
 
+    # Normalize probabilities
     for s_unigram in model:
         total = sum(model[s_unigram].values())
         for t_unigram in model[s_unigram]:
@@ -106,40 +107,34 @@ def build_better_uni_model(src_tokens, tgt_tokens):
     return model
 
 
-# Bigram translation model 
+# Basic Bigram model 
 def build_bigram_model(src_tokens, tgt_tokens):
     model = defaultdict(lambda: defaultdict(int))
     for src_tok, tgt_tok in zip(src_tokens, tgt_tokens):
-        # Create bigrams for each sentence
         src_bigrams = list(ngrams(src_tok, 2))
         tgt_bigrams = list(ngrams(tgt_tok, 2))
         
-        # Map each source bigram to each target bigram with a count
-        # This simple approach increases counts for all possible pairs
         for s_bigram in src_bigrams:
             for t_bigram in tgt_bigrams:
                 model[s_bigram][t_bigram] += 1
     return model
 
-
+# Smoothed/Weighted Bigram Model with Gaussian-style alignment preference
 def build_better_bi_model(src_tokens, tgt_tokens):
     model = defaultdict(lambda: defaultdict(float))
 
     src_freq = defaultdict(int)
 
-    # First pass: count source unigram frequencies
+    # Count source Bigram frequencies
     for src_tok in src_tokens:
         src_bigrams = list(ngrams(src_tok, 2))
         for s_bigram in src_bigrams:
             src_freq[s_bigram] += 1
 
     for src_tok, tgt_tok in zip(src_tokens, tgt_tokens):
-        # Create bigrams for each sentence
         src_bigrams = list(ngrams(src_tok, 2))
         tgt_bigrams = list(ngrams(tgt_tok, 2))
         
-        # Map each source bigram to each target bigram with a count
-        # This simple approach increases counts for all possible pairs
         n_src_grams = len(src_bigrams)
         n_tgt_grams = len(tgt_bigrams)
         for i in range(n_src_grams):
@@ -152,6 +147,7 @@ def build_better_bi_model(src_tokens, tgt_tokens):
                 weight = np.exp(- (diff ** 2) / (2 * sigma ** 2))
                 model[s_bigram][t_bigram] += weight / (src_freq[s_bigram])
 
+    # Apply smoothing
     for s_bigram in model:
         total = sum(model[s_bigram].values()) + len(model[s_bigram])
         for t_bigram in model[s_bigram]:
@@ -160,7 +156,7 @@ def build_better_bi_model(src_tokens, tgt_tokens):
     return model
 
 
-
+# Translation using Unigram Model
 def translate_unigram(sentence, model, tok):
     tokens = tokenize_sents([sentence], tok)[0]
     translated = []
@@ -179,6 +175,7 @@ def translate_unigram(sentence, model, tok):
     
     return " ".join(translated)
 
+# Translation using Bigram Model with Unigram fallback
 def translate_bigram(sentence, model, unigram_model, tok):
     tokens = tokenize_sents([sentence], tok)[0]
     translated = []
@@ -192,7 +189,7 @@ def translate_bigram(sentence, model, unigram_model, tok):
             else:
                 translated.append(best_target[1])
         else:
-            # fallback to unigrams
+            # Fallback to unigrams
             unigram = (tokens[i],)
             if unigram in unigram_model:
                 best_target = max(unigram_model[unigram].items(), key=lambda x: x[1])[0]
@@ -244,6 +241,7 @@ nrows = 150000
 
 tokenized_fname = f"tokenized_data_{nrows}.csv"
 
+# Load Dataset
 print(f"nrows: {nrows}")
 df = pd.read_csv("./Final_Project/wmt14_translate_de-en_train.csv", delimiter=",", encoding="utf-8", nrows=nrows, engine="python", on_bad_lines="skip")
 
@@ -255,7 +253,7 @@ print(f'df length: {len(df)}')
 df["en"] = df["en"].apply(clean_text)
 df["de"] = df["de"].apply(clean_text)
 
-# Optional: filter long mismatched pairs
+# Filter long or mismatched pairs
 df = df[df['en'].str.split().str.len() < 50]
 df = df[df['de'].str.split().str.len() < 50]
 
@@ -271,16 +269,15 @@ eng_train, eng_test, ger_train, ger_test = train_test_split(
     english_sents, german_sents, test_size=0.2, random_state=42
 )
 
-# Tokenize German and English sentences
+# Tokenization
 tok_en = ez_tokenizer
 tok_de = ez_tokenizer
-
 english_train_tokens = tokenize_sents(eng_train, tok_en)
 german_train_tokens = tokenize_sents(ger_train, tok_de)
 
+# Build Models
 unigram_model = build_unigram_model(english_train_tokens, german_train_tokens)
 bigram_model = build_bigram_model(english_train_tokens, german_train_tokens)
-
 custom_unigram_model = build_better_uni_model(english_train_tokens, german_train_tokens)
 custom_bigram_model = build_better_bi_model(english_train_tokens, german_train_tokens)
 
@@ -314,7 +311,7 @@ custom_unigram_norm = [normalize(s) for s in custom_unigram_preds]
 custom_bigram_norm = [normalize(s) for s in custom_bigram_preds]
 ger_test_norm = [detokenize(normalize(s)) for s in ger_test]
 
-# Format references correctly - each reference is a list of one reference
+# Prepare for BLEU
 references = [ger_test_norm]
 unigram_hyps = [detokenize(normalize(hyp)) for hyp in unigram_preds]
 bigram_hyps = [detokenize(normalize(hyp)) for hyp in bigram_preds]
@@ -327,12 +324,13 @@ bleu_bigram = corpus_bleu(bigram_hyps, references)
 bleu_custom_unigram = corpus_bleu(custom_unigram_hyps, references)
 bleu_custom_bigram = corpus_bleu(custom_bigram_hyps, references)
 
-
+# Print BLEU
 print(f"BLEU - Unigram Model: {bleu_unigram.score:.4f}")
 print(f"BLEU - Bigram Model: {bleu_bigram.score:.4f}")
 print(f"BLEU - Custom Unigram Model: {bleu_custom_unigram.score:.4f}")
 print(f"BLEU - Custom Bigram Model: {bleu_custom_bigram.score:.4f}")
 
+# Accuracy and F1
 acc_unigram = word_accuracy(unigram_preds_norm, ger_test_norm)
 acc_bigram = word_accuracy(bigram_preds_norm, ger_test_norm)
 acc_custom_unigram = word_accuracy(custom_unigram_norm, ger_test_norm)
@@ -353,7 +351,5 @@ print(f"F1 Score - Unigram Model: {f1_unigram:.4f}")
 print(f"F1 Score - Bigram Model: {f1_bigram:.4f}")
 print(f"F1 Score - Custom Unigram Model: {f1_custom_unigram:.4f}")
 print(f"F1 Score - Custom Bigram Model: {f1_custom_bigram:.4f}")
-
-
 
 print("\nNOTE:BLEU remains the primary metric for evaluating machine translation systems.")
